@@ -35,4 +35,8 @@ app.use(bodyParser.json());
 const loginRouter = require("./router/login");
 app.use("/login", loginRouter);
 
+// profile
+const profileRouter = require("./router/profile");
+app.use("/profile", profileRouter);
+
 app.route("/").get((req, res) => res.send("Hello, Bookstack 📚"));
