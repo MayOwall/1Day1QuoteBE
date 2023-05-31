@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { PORT, MONGODB_ID, MONGODB_PASSWORD } = process.env;
+const bodyParser = require("body-parser");
 const express = require("express");
 const app = express();
 const { MongoClient, ServerApiVersion } = require("mongodb");
@@ -17,6 +18,7 @@ async function run() {
   try {
     await mongoClient.connect();
     await mongoClient.db("1day1quote").command({ ping: 1 });
+    app.db = mongoClient.db("1day1quote");
     app.listen(PORT || 8080, () =>
       console.log("🚀 1Day1Quote BE Server is Running")
     );
@@ -25,6 +27,9 @@ async function run() {
   }
 }
 run();
+
+// body-parser
+app.use(bodyParser.json());
 
 // login (로그인)
 const loginRouter = require("./router/login");
