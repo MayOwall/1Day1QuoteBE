@@ -12,6 +12,7 @@ router.post("/", async (req, res) => {
     const token = jwt.sign({ userId: userId }, JWT_SECRET_KEY, {
       expiresIn: "1d",
     });
+
     const userDBData = await db
       .collection("auth")
       .findOne({ userId })
@@ -39,8 +40,13 @@ router.post("/", async (req, res) => {
       res.status(200).json({
         success: true,
         isNewAccount: true,
-        token,
-        userData: { userId, userName, userImageURL, userIntroduce: "" },
+        userData: {
+          authToken: token,
+          userId,
+          userName,
+          userImageURL,
+          userIntroduce: "",
+        },
       });
       return;
     }
@@ -50,8 +56,8 @@ router.post("/", async (req, res) => {
       res.json({
         success: true,
         isNewAccount: false,
-        token,
         userData: {
+          authToken: token,
           userId: userDBData.userId,
           userName: userDBData.userName,
           userImageURL: userDBData.userImageURL,
