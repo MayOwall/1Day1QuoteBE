@@ -4,7 +4,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET_KEY } = process.env;
 
-// 카드 데이터 생성
+// 카드 생성
 router.post("/create", async (req, res) => {
   try {
     const { db } = req.app;
@@ -61,28 +61,24 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// GET 카드 리스트
+// 카드 리스트 리턴
 router.get("/list", async (req, res) => {
   try {
-    const page = Number(req.query.page);
+    const { sort, page } = req.query;
     const { db } = req.app;
-    const cardListData = await db
+    const cursors = await db
       .collection("quoteCard")
       .find()
-      .skip((page - 1) * 10)
+      .sort(sort === "최신순" ? {} : { fireCount: -1 });
+    const cardListData = await cursors
+      .skip((Number(page) - 1) * 10)
       .limit(10)
       .toArray();
-    const filtered = cardListData.map((cardData) => {
-      return {
-        userData: cardData.userData,
-        contentData: cardData.contentData,
-      };
-    });
-    const count = await db.collection.countDocuments();
-    const isLast = (page - 1) * 11 >= count;
+    const count = await cursors.count();
+    const isLast = (Number(page) - 1) * 11 >= count;
     const data = {
       isLast,
-      cardListData: filtered,
+      cardListData,
     };
     return res.status(200).json({ success: true, data });
   } catch (err) {
