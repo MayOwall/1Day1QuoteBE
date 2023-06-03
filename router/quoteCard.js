@@ -70,11 +70,11 @@ router.get("/list", async (req, res) => {
       .collection("quoteCard")
       .find()
       .sort(sort === "최신순" ? {} : { fireCount: -1 });
+    const count = await cursors.count();
     const cardListData = await cursors
       .skip((Number(page) - 1) * 10)
       .limit(10)
       .toArray();
-    const count = await cursors.count();
     const isLast = (Number(page) - 1) * 10 + 10 >= count;
     const data = {
       isLast,
