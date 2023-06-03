@@ -69,7 +69,7 @@ router.get("/list", async (req, res) => {
     const cursors = await db
       .collection("quoteCard")
       .find()
-      .sort(sort === "최신순" ? {} : { fireCount: -1 });
+      .sort(sort === "최신순" ? { _id: -1 } : { fireCount: -1 });
     const count = await cursors.count();
     const cardListData = await cursors
       .skip((Number(page) - 1) * 10)
