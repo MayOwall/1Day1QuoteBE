@@ -75,7 +75,7 @@ router.get("/list", async (req, res) => {
       .limit(10)
       .toArray();
     const count = await cursors.count();
-    const isLast = (Number(page) - 1) * 11 >= count;
+    const isLast = (Number(page) - 1) * 10 + 10 >= count;
     const data = {
       isLast,
       cardListData,
