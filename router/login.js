@@ -2,7 +2,7 @@ require("dotenv/config");
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET_KEY } = process.env;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 // 로그인 POST 핸들러
 router.post("/", async (req, res) => {
@@ -12,15 +12,10 @@ router.post("/", async (req, res) => {
     const token = jwt.sign({ userId: userId }, JWT_SECRET_KEY, {
       expiresIn: "1d",
     });
-
     const userDBData = await db
       .collection("auth")
       .findOne({ userId })
-      .catch(() =>
-        res
-          .status(500)
-          .json({ success: false, reason: "DB 로그인 APi 도중 에러" })
-      );
+      .catch((e) => res.status(500).json({ success: false, reason: e }));
 
     // 유저 정보 존재하지 않을 때 : 새 유저 정보 생성
     if (!userDBData) {
@@ -68,7 +63,7 @@ router.post("/", async (req, res) => {
     }
   } catch (err) {
     console.log(err);
-    res.status(500).json({ success: false, reason: "로그인 서버 에러" });
+    res.status(500).json({ success: false, reason: err });
   }
 });
 

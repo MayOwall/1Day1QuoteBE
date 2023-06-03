@@ -29,7 +29,7 @@ async function run() {
 run();
 
 app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Origin", "*");
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept"
@@ -57,4 +57,4 @@ app.use("/image", imageRouter);
 const quoteCardRouter = require("./router/quoteCard");
 app.use("/quoteCard", quoteCardRouter);
 
-app.route("/").get((req, res) => res.send("Hello, Bookstack 📚"));
+app.route("/").get((req, res) => res.send("Hello, This is 1Day 1Quote BE 📚"));

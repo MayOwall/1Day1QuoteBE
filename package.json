@@ -2,9 +2,10 @@
   "name": "1day1quotebe",
   "version": "1.0.0",
   "description": "1Day1Quote Backend server",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
     "uuid4": "^2.0.3"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.2.13",
     "nodemon": "^2.0.22"
   }
 }

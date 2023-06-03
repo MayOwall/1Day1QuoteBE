@@ -4,11 +4,12 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET_KEY } = process.env;
 
+// 카드 데이터 생성
 router.post("/create", async (req, res) => {
   try {
     const { db } = req.app;
-    const { token, cardData } = req.body;
-
+    const { token, userData, contentData } = req.body;
+    const { id, date, imageURL, quote, speaker } = contentData;
     // 토큰이 유효한지 확인
     const { userId } = jwt.verify(token, JWT_SECRET_KEY);
     if (!userId)
@@ -16,13 +17,18 @@ router.post("/create", async (req, res) => {
 
     // 카드 데이터 생성
     const newQuoteCardDBData = {
-      _id: cardData._id,
-      quote: cardData.quote,
-      speaker: cardData.speaker,
-      imageURL: cardData.imageURL,
-      fireCount: 0,
-      fireUserList: [],
+      userData,
+      contentData: {
+        id,
+        date,
+        imageURL,
+        quote,
+        speaker,
+        fireCount: 0,
+        fireUserList: [],
+      },
     };
+
     await db.collection("quoteCard").insertOne(newQuoteCardDBData);
 
     let { userQuoteCount, userQuoteList } = await db
@@ -38,7 +44,7 @@ router.post("/create", async (req, res) => {
     const newValues = {
       $set: {
         userQuoteCount: userQuoteCount + 1,
-        userQuoteList: [...userQuoteList, cardData._id],
+        userQuoteList: [...userQuoteList, contentData.id],
       },
     };
 
@@ -55,4 +61,33 @@ router.post("/create", async (req, res) => {
   }
 });
 
+// GET 카드 리스트
+router.get("/list", async (req, res) => {
+  try {
+    const page = Number(req.query.page);
+    const { db } = req.app;
+    const cardListData = await db
+      .collection("quoteCard")
+      .find()
+      .skip((page - 1) * 10)
+      .limit(10)
+      .toArray();
+    const filtered = cardListData.map((cardData) => {
+      return {
+        userData: cardData.userData,
+        contentData: cardData.contentData,
+      };
+    });
+    const count = await db.collection.countDocuments();
+    const isLast = (page - 1) * 11 >= count;
+    const data = {
+      isLast,
+      cardListData: filtered,
+    };
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.log("/quoteCard/list error", err);
+    return res.status(500).json({ success: false, reason: err });
+  }
+});
 module.exports = router;
