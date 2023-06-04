@@ -7,27 +7,27 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 // 로그인 POST 핸들러
 router.post("/", async (req, res) => {
   try {
-    const { userId, userName, userImageURL } = req.body;
+    const { id, name, imageURL } = req.body;
     const { db } = req.app;
-    const token = jwt.sign({ userId: userId }, JWT_SECRET_KEY, {
+    const token = jwt.sign({ id }, JWT_SECRET_KEY, {
       expiresIn: "1d",
     });
     const userDBData = await db
       .collection("auth")
-      .findOne({ userId })
+      .findOne({ id })
       .catch((e) => res.status(500).json({ success: false, reason: e }));
 
     // 유저 정보 존재하지 않을 때 : 새 유저 정보 생성
     if (!userDBData) {
       const newUserDBData = {
-        userId,
-        userName,
-        userImageURL,
-        userIntroduce: "",
-        userQuoteCount: 0,
-        userQuoteList: [],
-        userBookmarkCount: 0,
-        userBookmarkList: [],
+        id,
+        name,
+        imageURL,
+        introduce: "",
+        quoteCount: 0,
+        quoteList: [],
+        bookmarkCount: 0,
+        bookmarkList: [],
       };
 
       await db.collection("auth").insertOne(newUserDBData);
@@ -37,10 +37,10 @@ router.post("/", async (req, res) => {
         isNewAccount: true,
         userData: {
           authToken: token,
-          userId,
-          userName,
-          userImageURL,
-          userIntroduce: "",
+          id,
+          name,
+          imageURL,
+          introduce: "",
         },
       });
       return;
@@ -53,10 +53,10 @@ router.post("/", async (req, res) => {
         isNewAccount: false,
         userData: {
           authToken: token,
-          userId: userDBData.userId,
-          userName: userDBData.userName,
-          userImageURL: userDBData.userImageURL,
-          userIntroduce: userDBData.userIntroduce,
+          id: userDBData.id,
+          name: userDBData.name,
+          imageURL: userDBData.imageURL,
+          introduce: userDBData.introduce,
         },
       });
       return;
