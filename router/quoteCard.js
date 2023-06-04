@@ -94,7 +94,7 @@ router.post("/fire", async (req, res) => {
     const { authorization: token } = req.headers;
     const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
     if (!userId) {
-      res.status(401).json({ success: false, reason: "expired token" });
+      res.status(401).json({ success: false, reason: "unvalid token" });
       return;
     }
 
@@ -127,13 +127,37 @@ module.exports = router;
 
 router.post("/bookmark", async (req, res) => {
   try {
+    //cardId, bookmark, userId 인증 확인
     const { cardId, bookmark } = req.body;
-    console.log(req.headers);
-    const { db } = req.app;
+    const { authorization: token } = req.headers;
+    const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
+    if (!userId) {
+      res.status(401).json({ success: false, reason: "unvalid token" });
+      return;
+    }
 
-    return res.status(200).json({ success: true, data: null });
+    // db에 북마크 데이터 저장
+    const { db } = req.app;
+    const filter = {
+      id: userId,
+    };
+    const updateValue =
+      bookmark === "addBookmark"
+        ? {
+            $inc: { bookmarkCount: 1 },
+            $push: { bookmarkList: cardId },
+          }
+        : {
+            $inc: { bookmarkCount: -1 },
+            $pull: { bookmarkList: cardId },
+          };
+    await db.collection("auth").updateOne(filter, updateValue);
+
+    // 클라이언트로 결과 전송 (success)
+    return res.status(200).json({ success: true });
   } catch (err) {
     console.log("/quoteCard/bookmark error", err);
+    // 클라이언트로 결과 전송 (success)
     return res.status(500).json({ success: false, reason: err });
   }
 });
