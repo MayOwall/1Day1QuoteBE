@@ -86,4 +86,54 @@ router.get("/list", async (req, res) => {
     return res.status(500).json({ success: false, reason: err });
   }
 });
+
+router.post("/fire", async (req, res) => {
+  try {
+    // userId, JWT 인증
+    const { cardId, fire } = req.body;
+    const { authorization: token } = req.headers;
+    const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
+    if (!userId) {
+      res.status(401).json({ success: false, reason: "expired token" });
+      return;
+    }
+
+    // 카드 fire count 및 fireUserList 업데이트
+    const { db } = req.app;
+    const filter = {
+      "contentData.id": cardId,
+    };
+    const updateValue =
+      fire === "fireUp"
+        ? {
+            $inc: { "contentData.fireCount": 1 },
+            $push: { "contentData.fireUserList": userId },
+          }
+        : {
+            $inc: { "contentData.fireCount": -1 },
+            $pull: { "contentData.fireUserList": userId },
+          };
+    await db.collection("quoteCard").updateOne(filter, updateValue);
+
+    // 서버로 결과 전송 (success)
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.log("/quoteCard/fire error", err);
+    // 서버로 결과 전송 (success)
+    return res.status(500).json({ success: false, reason: err });
+  }
+});
 module.exports = router;
+
+router.post("/bookmark", async (req, res) => {
+  try {
+    const { cardId, bookmark } = req.body;
+    console.log(req.headers);
+    const { db } = req.app;
+
+    return res.status(200).json({ success: true, data: null });
+  } catch (err) {
+    console.log("/quoteCard/bookmark error", err);
+    return res.status(500).json({ success: false, reason: err });
+  }
+});
