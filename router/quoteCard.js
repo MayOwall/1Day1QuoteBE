@@ -87,6 +87,7 @@ router.get("/list", async (req, res) => {
   }
 });
 
+// 카드 fire
 router.post("/fire", async (req, res) => {
   try {
     // userId, JWT 인증
@@ -123,8 +124,8 @@ router.post("/fire", async (req, res) => {
     return res.status(500).json({ success: false, reason: err });
   }
 });
-module.exports = router;
 
+// 카드 bookmark
 router.post("/bookmark", async (req, res) => {
   try {
     //cardId, bookmark, userId 인증 확인
@@ -161,3 +162,34 @@ router.post("/bookmark", async (req, res) => {
     return res.status(500).json({ success: false, reason: err });
   }
 });
+
+// 카드 delete
+router.delete("/delete", async (req, res) => {
+  try {
+    // cardId, userId 인증
+    const { cardId } = req.body;
+    const { authorization: token } = req.headers;
+    const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
+    if (!userId) {
+      res.status(401).json({ success: false, reason: "unvalid token" });
+      return;
+    }
+
+    // 카드 데이터 삭제
+    const { db } = req.app;
+    db.collection("quoteCard").deleteOne({ "contentData.id": cardId });
+    // 카드 삭제 관련 유저 데이터 수정
+    db.collection("auth").updateOne(
+      { id: userId },
+      { $pull: { quoteList: cardId }, $inc: { quoteCount: -1 } }
+    );
+
+    // 클라이언트로 결과 전송
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, reason: err });
+  }
+});
+
+module.exports = router;
