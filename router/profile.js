@@ -9,10 +9,9 @@ router.get("/:id", async (req, res) => {
     .collection("auth")
     .findOne({ userId: id })
     .catch(() =>
-      res.status(500).jsoin({ success: false, reason: "DB 서버 에러" })
+      res.status(500).json({ success: false, reason: "DB 서버 에러" })
     );
 
-  res.header("Access-Control-Allow-Origin", "*");
   if (userDBData) {
     res.status(200).json({ success: true, userDBData });
     return;
