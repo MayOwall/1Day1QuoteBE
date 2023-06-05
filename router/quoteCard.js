@@ -11,7 +11,7 @@ router.post("/create", async (req, res) => {
     const { token, userData, contentData } = req.body;
     const { id, date, imageURL, quote, speaker } = contentData;
     // 토큰이 유효한지 확인
-    const { userId } = jwt.verify(token, JWT_SECRET_KEY);
+    const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
     if (!userId)
       res.status(500).json({ success: false, reason: "expired token" });
 
@@ -28,35 +28,21 @@ router.post("/create", async (req, res) => {
         fireUserList: [],
       },
     };
-
     await db.collection("quoteCard").insertOne(newQuoteCardDBData);
 
-    let { userQuoteCount, userQuoteList } = await db
-      .collection("auth")
-      .findOne({ userId })
-      .catch(() =>
-        res
-          .status(500)
-          .json({ success: false, reason: "DB 로그인 APi 도중 에러" })
-      );
-
-    const myQuery = { userId };
-    const newValues = {
-      $set: {
-        userQuoteCount: userQuoteCount + 1,
-        userQuoteList: [...userQuoteList, contentData.id],
-      },
+    // 카드 관련 유저 데이터 업데이트
+    const filter = { id: userId };
+    const updateValue = {
+      $inc: { quoteCount: 1 },
+      $push: { quoteList: contentData.id },
     };
-
-    await db.collection("auth").updateOne(myQuery, newValues, (err) => {
+    await db.collection("auth").updateOne(filter, updateValue, (err) => {
       if (err) throw err;
     });
 
-    res.status(200).json({
-      success: true,
-    });
+    res.status(200).json({ success: true });
   } catch (e) {
-    console.log(e);
+    e;
     res.status(500).json({ success: false, reason: "db error" });
   }
 });
@@ -65,17 +51,60 @@ router.post("/create", async (req, res) => {
 router.get("/list", async (req, res) => {
   try {
     const { sort, page } = req.query;
+    const { authorization: token } = req.headers;
+    let userId = null;
+    if (token) {
+      userId = jwt.verify(token, JWT_SECRET_KEY).id;
+    }
+
     const { db } = req.app;
-    const cursors = await db
-      .collection("quoteCard")
-      .find()
-      .sort(sort === "최신순" ? { _id: -1 } : { fireCount: -1, _id: -1 });
+    const sortOption =
+      sort === "최신순"
+        ? { _id: -1 }
+        : { "contentData.fireCount": -1, _id: -1 };
+    const cursors = await db.collection("quoteCard").find().sort(sortOption);
     const count = await cursors.count();
-    const cardListData = await cursors
+    const isLast = (Number(page) - 1) * 10 + 10 >= count;
+    let cardListData = await cursors
       .skip((Number(page) - 1) * 10)
       .limit(10)
       .toArray();
-    const isLast = (Number(page) - 1) * 10 + 10 >= count;
+    // 로그인한 유저라면 fireList제거, isFired와 isBookmarked에 유저 데이터 반영
+    if (userId) {
+      const { bookmarkList } = await db
+        .collection("auth")
+        .findOne({ id: userId });
+      const cardDataEditor = (card) => {
+        const { userData, contentData } = card;
+        const { fireUserList, ...nextContentData } = contentData;
+        nextContentData.isFired = fireUserList.includes(userId);
+        nextContentData.isBookmarked = bookmarkList.includes(
+          card.contentData.id
+        );
+        const nextCardData = {
+          userData,
+          contentData: nextContentData,
+        };
+        return nextCardData;
+      };
+
+      cardListData = cardListData.map((card) => cardDataEditor(card));
+    }
+
+    // 로그인 하지 않은 유저라면 fireUserList제거, isFired와 isBookmark를 false로 반영
+    if (!userId) {
+      cardListData = cardListData.map((card) => {
+        const { userData, contentData } = card;
+        const { fireUserList, ...nextContentData } = contentData;
+        nextContentData.isFired = false;
+        nextContentData.isBookmarked = false;
+        const nextCardData = {
+          userData,
+          contentData: nextContentData,
+        };
+        return nextCardData;
+      });
+    }
     const data = {
       isLast,
       cardListData,
