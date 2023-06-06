@@ -1,6 +1,8 @@
 require("dotenv/config");
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const router = express.Router();
+const { JWT_SECRET_KEY } = process.env;
 
 router.get("/userQuoteList", async (req, res) => {
   try {
@@ -89,6 +91,47 @@ router.get("/userBookmarkList", async (req, res) => {
       success: false,
       reason: "server error from /profile/userBookmarkList",
     });
+  }
+});
+
+router.post("/edit", async (req, res) => {
+  try {
+    const { authorization: token } = req.headers;
+    const { id } = jwt.verify(token, JWT_SECRET_KEY);
+    if (!id) res.status(500).json({ success: false, reason: "unvalid token" });
+
+    const { db } = req.app;
+    const { name, introduce, imageURL } = req.body;
+    const filter = { id };
+    const updateValue = {
+      $set: {
+        name,
+        introduce,
+        imageURL,
+      },
+    };
+
+    // 유저 데이터 변경
+    await db.collection("auth").updateOne(filter, updateValue);
+
+    const quoteFilter = { "userData.id": id };
+    const quoteUpdateValue = {
+      $set: {
+        "userData.name": name,
+        "userData.introduce": introduce,
+        "userData.imageURL": imageURL,
+      },
+    };
+
+    // 유저가 작성했던 모든 카드 데이터 변경
+    await db.collection("quoteCard").updateMany(quoteFilter, quoteUpdateValue);
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.log("error from /profile/edit", err);
+    res
+      .status(500)
+      .json({ success: false, reason: "server error from /profile/edit" });
   }
 });
 
