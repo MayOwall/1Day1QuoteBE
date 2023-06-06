@@ -8,12 +8,13 @@ const { JWT_SECRET_KEY } = process.env;
 router.post("/create", async (req, res) => {
   try {
     const { db } = req.app;
-    const { token, userData, contentData } = req.body;
+    const { authorization: token } = req.headers;
+    const { userData, contentData } = req.body;
     const { id, date, imageURL, quote, speaker } = contentData;
     // 토큰이 유효한지 확인
     const { id: userId } = jwt.verify(token, JWT_SECRET_KEY);
     if (!userId)
-      res.status(500).json({ success: false, reason: "expired token" });
+      res.status(500).json({ success: false, reason: "unvalid token" });
 
     // 카드 데이터 생성
     const newQuoteCardDBData = {
@@ -62,6 +63,7 @@ router.get("/list", async (req, res) => {
       sort === "최신순"
         ? { _id: -1 }
         : { "contentData.fireCount": -1, _id: -1 };
+
     const cursors = await db.collection("quoteCard").find().sort(sortOption);
     const count = await cursors.count();
     const isLast = (Number(page) - 1) * 10 + 10 >= count;
@@ -78,9 +80,7 @@ router.get("/list", async (req, res) => {
         const { userData, contentData } = card;
         const { fireUserList, ...nextContentData } = contentData;
         nextContentData.isFired = fireUserList.includes(userId);
-        nextContentData.isBookmarked = bookmarkList.includes(
-          card.contentData.id
-        );
+        nextContentData.isBookMarked = bookmarkList.includes(contentData.id);
         const nextCardData = {
           userData,
           contentData: nextContentData,

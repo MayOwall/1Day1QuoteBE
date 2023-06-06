@@ -6,13 +6,12 @@ router.get("/userQuoteList", async (req, res) => {
   try {
     const { db } = req.app;
     const { id, page } = req.query;
-    const { quoteList: quoteIdList } = await db
-      .collection("auth")
-      .findOne({ id });
+    const user = await db.collection("auth").findOne({ id });
+    const { quoteList: quoteIdList, bookmarkList } = user;
 
     const curQuoteIdList = quoteIdList.slice((Number(page) - 1) * 10, 30);
 
-    const quoteList = await Promise.all(
+    const quoteDBList = await Promise.all(
       curQuoteIdList.map((quoteId) => {
         const quote = db
           .collection("quoteCard")
@@ -20,6 +19,18 @@ router.get("/userQuoteList", async (req, res) => {
         return quote;
       })
     );
+
+    const quoteList = quoteDBList.map((quote) => {
+      const { userData, contentData } = quote;
+      const { fireUserList, ...nextContentData } = contentData;
+      nextContentData.isFired = fireUserList.includes(userData.id);
+      nextContentData.isBookMarked = bookmarkList.includes(contentData.id);
+      const nextQuote = {
+        userData,
+        contentData: nextContentData,
+      };
+      return nextQuote;
+    });
 
     res.json({
       success: true,
@@ -36,7 +47,6 @@ router.get("/userQuoteList", async (req, res) => {
   }
 });
 
-
 router.get("/userBookmarkList", async (req, res) => {
   try {
     const { db } = req.app;
@@ -47,7 +57,7 @@ router.get("/userBookmarkList", async (req, res) => {
 
     const curQuoteIdList = bookmarkIdList.slice((Number(page) - 1) * 10, 30);
 
-    const bookmarkList = await Promise.all(
+    const bookmarkDBList = await Promise.all(
       curQuoteIdList.map((bookmarkId) => {
         const bookmark = db
           .collection("quoteCard")
@@ -55,6 +65,17 @@ router.get("/userBookmarkList", async (req, res) => {
         return bookmark;
       })
     );
+    const bookmarkList = bookmarkDBList.map((bookmark) => {
+      const { userData, contentData } = bookmark;
+      const { fireUserList, ...nextContentData } = contentData;
+      nextContentData.isBookMarked = true;
+      nextContentData.isFired = fireUserList.includes(userData.id);
+      const nextBookmark = {
+        userData,
+        contentData: nextContentData,
+      };
+      return nextBookmark;
+    });
 
     res.json({
       success: true,
@@ -62,7 +83,6 @@ router.get("/userBookmarkList", async (req, res) => {
         bookmarkList,
       },
     });
-
   } catch (err) {
     console.log("error from profile/userBookmarkList", err);
     res.status(500).json({
